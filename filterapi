@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+# coding: utf8
+
+import re
+import pcap
+import struct
+# import platform
+# import xml.dom.minidom as minidom
+# import xml.etree.ElementTree as ET
+
+PORT = 34012
+FILTER = re.compile(r'getAgreements')
+INTERFACE = 'enp0s25'
+ETH_TYPE = 2048  # tcp
+XML_TAG = re.compile(r'<[a-zA-Z0-9-]*:*Body><[a-zA-Z0-9]*:*([^(>|/)]+)')
+XML_START_BODY = re.compile(r'(<\?xml version=)')
+
+
+def eth_stream():
+    for ts, pkt in pcap.pcap(name=INTERFACE):
+        if len(pkt) > 14:
+            (src, dst, eth_type) = struct.unpack_from('!6s6sH', pkt)
+            if eth_type == ETH_TYPE:
+                yield pkt[14:]
+
+
+def ip_stream():
+    for pkt in eth_stream():
+        header_len = (struct.unpack('B', pkt[0])[0] & 15) * 4
+        yield pkt[header_len:]
+
+
+def tcp_data_stream():
+    for pkt in ip_stream():
+        (src_port, dst_port, seq, ack, bits) = \
+            struct.unpack_from('!HHLLB', pkt)
+        header_len = ((bits & 240) >> 4) * 4
+        if (src_port == PORT or dst_port == PORT) and len(pkt) > header_len:
+            yield ack, pkt[header_len:]
+
+
+def protocol_stream():
+    old_ack = 0
+    old_data = ''
+    for ack, data in tcp_data_stream():
+        if old_ack == ack:
+            old_data += data
+        else:
+            old_ack = ack
+            if len(old_data) > 0:
+                yield old_data
+            old_data = data
+
+
+def xml_filter():
+    for pkt in protocol_stream():
+        ret = XML_TAG.search(pkt)
+        if ret:
+            tag = ret.groups()[0]
+            if FILTER.search(tag):
+                start_body = XML_START_BODY.search(pkt)
+                if start_body:
+                    start = start_body.start(0)
+                    yield pkt[start:]
+                else:
+                    print('error extract body')
+
+
+def pretty_xml():
+    for pkt in xml_filter():
+        txt = re.sub(r'><', '>\n<', pkt)
+        yield txt
+
+
+try:
+    for pkt in pretty_xml():
+        print('=' * 50)
+        print(pkt)
+except KeyboardInterrupt:
+    print('\npress Ctrl+C')
