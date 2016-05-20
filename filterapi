@@ -9,7 +9,7 @@ import struct
 # import xml.etree.ElementTree as ET
 
 PORT = 34012
-FILTER = re.compile(r'getAgreements')
+FILTER = re.compile(r'Login')
 INTERFACE = 'enp0s25'
 ETH_TYPE = 2048  # tcp
 XML_TAG = re.compile(r'<[a-zA-Z0-9-]*:*Body><[a-zA-Z0-9]*:*([^(>|/)]+)')
@@ -68,13 +68,28 @@ def xml_filter():
 
 def pretty_xml():
     for pkt in xml_filter():
-        txt = re.sub(r'><', '>\n<', pkt)
+        tab_index = 0
+        txt = ''
+        xml = re.sub('><', '>\n<', pkt)
+        for line in xml.split('\n'):
+
+            if re.search(r'^</', line):
+                tab_index -= 1
+
+            txt += '%s%s\n' % ('\t' * tab_index, line)
+
+            if re.search(r'[^\\|^?]>$', line):
+                tab_index += 1
+            if re.search(r'</', line):
+                tab_index -= 1
+
         yield txt
 
 
 try:
     for pkt in pretty_xml():
-        print('=' * 50)
+        print('>' * 79)
         print(pkt)
+        print('<' * 79)
 except KeyboardInterrupt:
     print('\npress Ctrl+C')
