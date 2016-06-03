@@ -4,15 +4,33 @@
 import re
 import pcap
 import struct
-# import platform
-# import xml.dom.minidom as minidom
-# import xml.etree.ElementTree as ET
+import optparse
 
-PORT = 34012
-FILTER = re.compile(r'getAgreements')
-INTERFACE = 'enp0s25'
+parser = optparse.OptionParser(usage='usage: %prog [options]\n\t')
+
+parser.add_option('-p', '--port', action='store', help=u'port filter')
+parser.add_option(
+    '-f', '--filter', action='store', help=u'name SOAP/JSON function'
+    )
+parser.add_option('-i', '--interface', action='store', help=u'interface name')
+
+parser.add_option(
+    '--xml-tag', action='store', help=u'xml template',
+    default="<[a-zA-Z0-9-]*:*Body>\s*<[a-zA-Z0-9]*:*([^(>|/)]+)"
+    )
+
+(opt, args) = parser.parse_args()
+
+if not opt.port or not opt.interface or not opt.filter:
+    parser.print_help()
+    exit(1)
+
+PORT = opt.port
+FILTER = re.compile(r'%s' % opt.filter)
+INTERFACE = opt.interface
 ETH_TYPE = 2048  # tcp
-XML_TAG = re.compile(r'<[a-zA-Z0-9-]*:*Body><[a-zA-Z0-9]*:*([^(>|/)]+)')
+XML_TAG = re.compile(r'%s' % opt.xml_tag)
+
 XML_START_BODY = re.compile(r'(<\?xml version=)')
 TAB = '  '
 

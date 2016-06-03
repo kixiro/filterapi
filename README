@@ -1,0 +1,3 @@
+Filter SOAP/JSON stream.
+
+Depending only on python standard modules and pcap library.
