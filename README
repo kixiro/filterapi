@@ -1,3 +1,7 @@
 Filter SOAP/JSON stream.
 
 Depending only on python standard modules and pcap library.
+
+build ELF file support:
+ CentOS 6/7
+ Debian 7/8
