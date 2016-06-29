@@ -8,28 +8,42 @@ import optparse
 
 parser = optparse.OptionParser(usage='usage: %prog [options]\n\t')
 
-parser.add_option('-p', '--port', action='store', help=u'port filter')
+parser.add_option(
+    '-p', '--port', action='store', help=u'port filter'
+    )
 parser.add_option(
     '-f', '--filter', action='store', help=u'name SOAP/JSON function'
     )
-parser.add_option('-i', '--interface', action='store', help=u'interface name')
+parser.add_option(
+    '-i', '--interface', action='store', help=u'interface name'
+    )
+parser.add_option(
+    '-x', '--protocol', action='store',
+    help=u'type protocol SOAP/JSON'
+    )
 
 parser.add_option(
     '--xml-tag', action='store', help=u'xml template',
     default="<[a-zA-Z0-9-]*:*Body>\s*<[a-zA-Z0-9]*:*([^(>|/)]+)"
     )
+parser.add_option(
+    '--json-filter', action='store', help=u'dict filter',
+    default="method"
+)
 
 (opt, args) = parser.parse_args()
 
-if not opt.port or not opt.interface or not opt.filter:
+if not opt.port or not opt.interface:
     parser.print_help()
     exit(1)
 
-PORT = opt.port
+PORT = int(opt.port)
 FILTER = re.compile(r'%s' % opt.filter)
 INTERFACE = opt.interface
 ETH_TYPE = 2048  # tcp
 XML_TAG = re.compile(r'%s' % opt.xml_tag)
+JSON_FILTER = opt.json_filter
+JSON_SPLIT = re.compile(r'\s')
 
 XML_START_BODY = re.compile(r'(<\?xml version=)')
 TAB = '  '
@@ -107,10 +121,57 @@ def pretty_xml():
         yield txt
 
 
+def json_split():
+    for pkt in protocol_stream():
+        start = 0
+        stop = 0
+        str_ = ''
+        for symbol in pkt:
+            str_ += symbol
+            if symbol == '{':
+                start += 1
+            if symbol == '}':
+                stop += 1
+            if start != 0 and start == stop:
+                yield str_
+                start = 0
+                stop = 0
+                str_ = ''
+
+
+def pretty_json():
+    current_id = []
+    for pkt in json_split():
+        dict_ = json.loads(pkt)
+        id_ = dict_['id']
+        if JSON_FILTER in dict_.keys():
+            if dict_[opt.json_filter] == opt.filter:
+                current_id.append(id_)
+                yield json.dumps(
+                    dict_, sort_keys=True, indent=2,
+                    separators=(',', ': ')
+                    )
+        else:
+            if id_ in current_id:
+                current_id.remove(id_)
+                yield json.dumps(
+                    dict_, sort_keys=True, indent=2,
+                    separators=(',', ': ')
+                    )
+
+
 try:
-    for pkt in pretty_xml():
-        print('>' * 79)
+    if opt.protocol.lower() == 'soap':
+        func = pretty_xml
+    elif opt.protocol.lower() == 'json':
+        func = pretty_json
+        import json
+    else:
+        print('bad protocol')
+        exit(1)
+
+    for pkt in func():
         print(pkt)
-        print('<' * 79)
+
 except KeyboardInterrupt:
     print('\npress Ctrl+C')
