@@ -1,0 +1,9 @@
+FROM debian:wheezy
+
+WORKDIR /root/src
+RUN apt-get update
+RUN apt-get install -y \
+    python-dev \
+    python-pip
+
+RUN pip install pyinstaller

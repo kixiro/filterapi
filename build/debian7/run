@@ -1,9 +1,0 @@
-#!/bin/bash
-
-rm -f filterapi
-rm -rf build/
-rm -rf dist/
-cp ../../filterapi .
-docker build -t filterapi_debian7 .
-rm filterapi
-docker run -it -v `pwd`:/root/mount/ filterapi_debian7 cp /root/src/dist/filterapi /root/mount
