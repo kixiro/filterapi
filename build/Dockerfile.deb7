@@ -3,7 +3,8 @@ FROM debian:wheezy
 WORKDIR /root/src
 RUN apt-get update
 RUN apt-get install -y \
+    libpcap-dev \
     python-dev \
     python-pip
 
-RUN pip install pyinstaller
+RUN pip install pyinstaller pypcap

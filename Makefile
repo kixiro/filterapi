@@ -12,7 +12,7 @@ build: deb8 deb7 el6
 define compile
 	docker pull $(1)
 	docker build -t filterapi_$(2) -f build/Dockerfile.$(2) ./build/
-	docker run -it -v $(PWD):/root/src filterapi_$(2) pyinstaller -F -s filterapi.py -n filterapi_$(2)
+	docker run -it -v $(PWD):/root/src filterapi_$(2) pyinstaller -F -s filterapi.py
 endef
 
 deb8:
