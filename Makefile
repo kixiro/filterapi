@@ -7,12 +7,12 @@ clean:
 
 all: build
 
-build: deb8 deb7 el6
+build: deb8 deb7 el6 el5
 
 define compile
 	docker pull $(1)
 	docker build -t filterapi_$(2) -f build/Dockerfile.$(2) ./build/
-	docker run -it -v $(PWD):/root/src filterapi_$(2) pyinstaller -F -s filterapi.py
+	docker run -it -v $(PWD):/root/src filterapi_$(2) pyinstaller -F -s src/filterapi.py
 endef
 
 deb8:

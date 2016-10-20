@@ -1,2 +1,3 @@
 dist/*
-build/filterapi_*
+build/filterapi*
+*.pyc
