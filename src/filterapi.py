@@ -55,32 +55,29 @@ def pretty_xml():
         yield txt
 
 
-def json_split():
-    for pkt in stream.protocol_stream():
-        start = 0
-        stop = 0
-        str_ = ''
-        for symbol in pkt:
-            str_ += symbol
-            if symbol == '{':
-                start += 1
-            if symbol == '}':
-                stop += 1
-            if start != 0 and start == stop:
-                yield str_
-                start = 0
-                stop = 0
-                str_ = ''
+def protocol_json():
+    data = ''
+    for pkt in stream.tcp_data_stream():
+        data += pkt
+        if pkt[-1] == '\n':
+            yield data
+            data = ''
 
 
 def pretty_json():
     current_id = []
-    for pkt in stream.protocol_stream():
-        print '-->', pkt, '<---'
-        dict_ = json.loads(pkt)
+    for pkt in protocol_json():
+        try:
+            dict_ = json.loads(pkt)
+        except:
+            print(
+                'BIG LENGTH [json.loads crash] --->{0}........{1}\
+                '.format(pkt[:100], pkt[-100:])
+            )
+            continue
         id_ = dict_['id']
         if JSON_FILTER in dict_.keys():
-            if dict_[opt.json_filter] == opt.filter:
+            if dict_[opt.json_filter] == opt.filter or not opt.filter:
                 current_id.append(id_)
                 yield json.dumps(
                     dict_, sort_keys=True, indent=2,

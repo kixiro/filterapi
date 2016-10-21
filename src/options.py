@@ -54,6 +54,9 @@ def get():
     if opt.bpf:
         settings.BPF = opt.bpf
     else:
-        settings.BPF = "tcp port {0} && len > 14".format(opt.port)
+        settings.BPF = "tcp port {0} and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)".format(opt.port)
+
+    print('interface: {0}'.format(settings.INTERFACE))
+    print('BPF: {0}'.format(settings.BPF))
 
     return opt
